@@ -14,29 +14,36 @@ const settingsStore = useSettingsStore()
     </main>
 
     <nav
-      class="fixed inset-x-0 bottom-0 border-t border-slate-200 bg-white/90 backdrop-blur dark:border-slate-800 dark:bg-slate-900/90"
+      class="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white/90 backdrop-blur dark:border-slate-800 dark:bg-slate-900/90"
     >
       <div class="mx-auto flex max-w-md justify-around px-2 py-2">
         <RouterLink
           to="/main"
-          class="flex-1 rounded-xl py-2 text-center text-sm font-medium text-slate-500 transition dark:text-slate-400"
+          class="flex-1 rounded-xl py-2 text-center text-xs font-medium text-slate-500 transition dark:text-slate-400"
           active-class="bg-indigo-50 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-300"
         >
           Сегодня
         </RouterLink>
         <RouterLink
           to="/task"
-          class="flex-1 rounded-xl py-2 text-center text-sm font-medium text-slate-500 transition dark:text-slate-400"
+          class="flex-1 rounded-xl py-2 text-center text-xs font-medium text-slate-500 transition dark:text-slate-400"
           active-class="bg-indigo-50 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-300"
         >
           Новая задача
         </RouterLink>
         <RouterLink
           to="/settings"
-          class="flex-1 rounded-xl py-2 text-center text-sm font-medium text-slate-500 transition dark:text-slate-400"
+          class="flex-1 rounded-xl py-2 text-center text-xs font-medium text-slate-500 transition dark:text-slate-400"
           active-class="bg-indigo-50 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-300"
         >
           Настройки
+        </RouterLink>
+        <RouterLink
+          to="/calc"
+          class="flex-1 rounded-xl py-2 text-center text-xs font-medium text-slate-500 transition dark:text-slate-400"
+          active-class="bg-indigo-50 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-300"
+        >
+          Калькулятор
         </RouterLink>
       </div>
     </nav>

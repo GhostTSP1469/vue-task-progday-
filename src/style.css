@@ -3,12 +3,28 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* Фон всей страницы — чтобы при подтягивании/отскоке не вылезал белый из-под body */
+html, body {
+  overflow-x: hidden;
+}
+
+/* отключает зум двойным тапом */
+* {
+  touch-action: manipulation;
+}
+
 html {
   background-color: #f1f5f9; /* slate-100 — как светлая тема */
 }
 
 html:has(.dark) {
   background-color: #020617; /* slate-950 — как тёмная */
+}
+
+/* iOS Safari приближает страницу при фокусе на поле со шрифтом меньше 16px */
+@media (max-width: 640px) {
+  input, select, textarea {
+    font-size: 16px;
+  }
 }
 .checkbox-wrapper-12 {
   position: relative;

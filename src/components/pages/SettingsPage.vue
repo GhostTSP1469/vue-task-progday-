@@ -1,16 +1,63 @@
 <script setup>
 import { useSettingsStore } from '../datas/settings.js'
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { userHeaders } from '../../userId.js'
 const settingsStore = useSettingsStore()
 const DAYS=[{num:1,label:'Пн'},{num:2,label:'Вт'},{num:3,label:'Ср'},{num:4,label:'Чт'},{num:5,label:'Пт'},{num:6,label:'Сб'},{num:0,label:'Вс'}]
-const permission=ref(Notification.permission)
 
+const pushSupported = 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window
+const permission = ref(pushSupported ? Notification.permission : 'unsupported')
+const pushError = ref('')
 
-async function askPermission(){
-    const result=await Notification.requestPermission()
-    permission.value=result
-   
+// Safari надёжнее принимает ключ как массив байт, а не как строку
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4)
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
+  return Uint8Array.from(atob(base64), char => char.charCodeAt(0))
 }
+
+// если Service Worker не поднялся, ready на iPhone может висеть вечно
+function getRegistration() {
+  return Promise.race([
+    navigator.serviceWorker.ready,
+    new Promise((_, reject) => setTimeout(() => reject(new Error('Service Worker не запустился')), 8000))
+  ])
+}
+
+async function subscribeToPush() {
+  const registration = await getRegistration()
+  const subscription = await registration.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: urlBase64ToUint8Array(import.meta.env.VITE_VAPID_PUBLIC_KEY)
+  })
+  const response = await fetch('/api/subscribe', {
+    method: 'POST',
+    body: JSON.stringify(subscription),
+    headers: userHeaders
+  })
+  if (!response.ok) throw new Error('Сервер не принял подписку')
+}
+
+async function askPermission() {
+  pushError.value = ''
+  try {
+    const result = await Notification.requestPermission()
+    permission.value = result
+    if (result === 'granted') await subscribeToPush()
+  } catch (err) {
+    pushError.value = err.message
+  }
+}
+
+// разрешение уже есть, а подписки на сервере может не быть (сбросили базу, не дошёл запрос)
+onMounted(async () => {
+  if (permission.value !== 'granted') return
+  try {
+    await subscribeToPush()
+  } catch (err) {
+    pushError.value = err.message
+  }
+})
 
 function toggleDay(num){
     const index=settingsStore.settings.workDays.indexOf(num)
@@ -20,38 +67,36 @@ function toggleDay(num){
         settingsStore.settings.workDays.splice(index,1)
     }
 }
-
-
-
-
 </script>
 
 <template>
   <div class="flex flex-col gap-4">
     <h1 class="text-3xl font-bold tracking-tight">Настройки</h1>
-<section >
-  <h2 class="font-medium">Push-уведомления</h2>
+<section class="rounded-2xl bg-white p-4 shadow-sm dark:bg-slate-900 dark:shadow-none dark:ring-1 dark:ring-slate-800">
+      <h2 class="font-medium">Push-уведомления</h2>
 
-  <p v-if="permission === 'granted'" class="text-sm text-slate-500 dark:text-slate-400">
-    Уведомления разрешены
-  </p>
-  <p v-else-if="permission === 'denied'"  class="text-sm text-slate-500 dark:text-slate-400">
-    Запрещены в браузере
-  </p>
-  <p v-else  class="text-sm text-slate-500 dark:text-slate-400">
-    Разреши уведомления, чтобы получать push
-  </p>
+      <p v-if="permission === 'granted'" class="mt-1 text-sm text-slate-500 dark:text-slate-400">Включены</p>
+      <p v-else-if="permission === 'denied'" class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+        Ты отказал в разрешении. Включи уведомления для сайта в настройках браузера (значок замка у адреса) или телефона.
+      </p>
+      <p v-else-if="permission === 'unsupported'" class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+        push  здесь недоступен. На iPhone добавь сайт на экран «Домой» и открой с иконки.
+      </p>
+      <p v-else class="mt-1 text-sm text-slate-500 dark:text-slate-400">Выключены</p>
 
-  <button v-if="permission === 'default'" @click="askPermission" class="mt-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-indigo-700">
-    Включить
-  </button>
-</section>
+      <p v-if="pushError" class="mt-1 text-sm text-red-600 dark:text-red-400">{{ pushError }}</p>
+
+      <button
+        v-if="permission === 'default'"
+        @click="askPermission"
+        class="mt-3 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-indigo-700"
+      >
+        Включить
+      </button>
+    </section>
 
     <section class="rounded-2xl bg-white p-4 shadow-sm dark:bg-slate-900 dark:shadow-none dark:ring-1 dark:ring-slate-800">
       <h2 class="font-medium">Рабочие часы</h2>
-      <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-        Вне этих часов напоминания не приходят.
-      </p>
 
       <div class="mt-3 flex flex-col gap-2">
         <label class="flex items-center justify-between gap-3">
@@ -76,9 +121,6 @@ function toggleDay(num){
 
     <section class="rounded-2xl bg-white p-4 shadow-sm dark:bg-slate-900 dark:shadow-none dark:ring-1 dark:ring-slate-800">
       <h2 class="font-medium">Рабочие дни</h2>
-      <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-        В выходные напоминания не приходят.
-      </p>
 
       <div class="mt-3 flex flex-wrap gap-2">
         <button
@@ -97,9 +139,6 @@ function toggleDay(num){
 
     <section class="rounded-2xl bg-white p-4 shadow-sm dark:bg-slate-900 dark:shadow-none dark:ring-1 dark:ring-slate-800">
       <h2 class="font-medium">Напоминания о здоровье</h2>
-      <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-        Встать, размяться, посмотреть вдаль.
-      </p>
 
       <label class="mt-3 flex items-center justify-between gap-3">
         <span class="text-sm text-slate-600 dark:text-slate-300">Включены</span>
@@ -125,9 +164,6 @@ function toggleDay(num){
 
     <section class="rounded-2xl bg-white p-4 shadow-sm dark:bg-slate-900 dark:shadow-none dark:ring-1 dark:ring-slate-800">
       <h2 class="font-medium">Оформление</h2>
-      <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-        Светлая или тёмная тема.
-      </p>
 
       <div class="mt-3 flex items-center justify-between gap-3">
         <span class="text-sm text-slate-600 dark:text-slate-300">{{ settingsStore.settings.darkMode ? 'Темная тема' : 'Светлая тема' }}</span>
@@ -139,6 +175,7 @@ function toggleDay(num){
       </div>
     </section>
 
+    
   </div>
 </template>
 

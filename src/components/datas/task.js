@@ -1,11 +1,12 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
+import { userHeaders } from '../../userId.js'
 
 export const useTaskStore = defineStore('tasks', () => {
   const tasks = ref([])
 
   async function getTasks() {
-    const response = await fetch('http://localhost:3000/tasks')
+    const response = await fetch('/api/tasks', { headers: userHeaders })
     const data = await response.json()
     tasks.value = data
   }
@@ -13,11 +14,9 @@ export const useTaskStore = defineStore('tasks', () => {
   getTasks()
 
   async function addTask(text, start, end, date) {
-    await fetch('http://localhost:3000/tasks', {
+    await fetch('/api/tasks', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers: userHeaders,
       body: JSON.stringify({ text, start, end, date })
     })
 
@@ -25,11 +24,9 @@ export const useTaskStore = defineStore('tasks', () => {
   }
 
  async function updateTask(task) {
-  await fetch(`http://localhost:3000/tasks/${task.id}`, {
+  await fetch(`/api/tasks/${task.id}`, {
     method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json'
-    },
+    headers: userHeaders,
     body: JSON.stringify({
       text: task.text,
       start: task.start,
@@ -47,11 +44,9 @@ export const useTaskStore = defineStore('tasks', () => {
     if (task) {
       task.completed = !task.completed
 
-      await fetch(`http://localhost:3000/tasks/${taskId}`, {
+      await fetch(`/api/tasks/${taskId}`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: userHeaders,
         body: JSON.stringify({ completed: task.completed })
       })
 
@@ -60,8 +55,9 @@ export const useTaskStore = defineStore('tasks', () => {
   }
 
   async function removeTask(taskId) {
-    await fetch(`http://localhost:3000/tasks/${taskId}`, {
-      method: 'DELETE'
+    await fetch(`/api/tasks/${taskId}`, {
+      method: 'DELETE',
+      headers: userHeaders
     })
 
     await getTasks()

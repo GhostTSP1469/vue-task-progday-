@@ -107,21 +107,21 @@ function submit() {
       </label>
 
       <div class="flex gap-3">
-        <label class="flex flex-1 flex-col gap-1">
+        <label class="flex min-w-0 flex-1 flex-col gap-1">
           <span class="text-sm text-slate-600 dark:text-slate-300">Начало</span>
           <input
             type="time"
             v-model="start"
-            class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm tabular-nums focus:border-indigo-400 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:[color-scheme:dark]"
+            class="w-full min-w-0 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm tabular-nums focus:border-indigo-400 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:[color-scheme:dark]"
           >
         </label>
 
-        <label class="flex flex-1 flex-col gap-1">
+        <label class="flex min-w-0 flex-1 flex-col gap-1">
           <span class="text-sm text-slate-600 dark:text-slate-300">Окончание</span>
           <input
             type="time"
             v-model="end"
-            class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm tabular-nums focus:border-indigo-400 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:[color-scheme:dark]"
+            class="w-full min-w-0 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm tabular-nums focus:border-indigo-400 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:[color-scheme:dark]"
           >
         </label>
       </div>

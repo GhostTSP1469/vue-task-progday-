@@ -1,8 +1,20 @@
 <script setup>
-import { ref,computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useTaskStore } from '../datas/task.js'
 const taskStore = useTaskStore()
 const revsort=ref(false)
+
+const now = ref(new Date())
+let timer
+onMounted(() => {
+  timer = setInterval(() => { now.value = new Date() }, 30000)
+})
+onUnmounted(() => clearInterval(timer))
+
+function isCurrent(task) {
+  const time = now.value.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })
+  return !task.completed && task.start <= time && time < task.end
+}
 const sortedTasks = computed(() => {
   return taskStore.tasks                  
   .filter(task => task.date === new Date().toLocaleDateString('sv-SE')) // типо сегодняшняя дата
@@ -28,7 +40,7 @@ const sortedTasks = computed(() => {
 
       <select
         v-model="revsort"
-        class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-indigo-400 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+        class="min-w-0 max-w-[55%] truncate rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-indigo-400 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
       >
         <option :value="false">Сначала не выполненные</option>
         <option :value="true">Сначала выполненные</option>
@@ -40,7 +52,7 @@ const sortedTasks = computed(() => {
         v-for="task in sortedTasks"
         :key="task.id"
         class="flex items-center gap-3 rounded-2xl bg-white p-4 shadow-sm transition dark:bg-slate-900 dark:shadow-none dark:ring-1 dark:ring-slate-800"
-        :class="{ 'opacity-60': task.completed }"
+        :class="{ 'opacity-60': task.completed, 'ring-2! ring-indigo-500!': isCurrent(task) }"
       >
    <div class="checkbox-wrapper-12 shrink-0">
   <div class="cbx">
@@ -74,9 +86,13 @@ const sortedTasks = computed(() => {
 
         <span
           class="shrink-0 rounded-full px-2.5 py-1 text-xs font-medium"
-          :class="task.completed ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300'"
+          :class="task.completed
+            ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'
+            : isCurrent(task)
+              ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300'
+              : 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300'"
         >
-          {{ task.completed ? 'Готово' : 'В плане' }}
+          {{ task.completed ? 'Готово' : isCurrent(task) ? 'Сейчас' : 'В плане' }}
         </span>
 
         <RouterLink
