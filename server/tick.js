@@ -51,15 +51,13 @@ export function tick(now, user) {
   for (const task of user.tasks) {
     if (task.completed) continue
 
-    let matches = task.date === date
-
-    if (!matches && task.repeat === 'daily') {
+    let matches
+    if (task.repeat === 'daily') {
       matches = true
-    }
-
-    if (!matches && task.repeat === 'weekly') {
-      const taskDate = new Date(task.date + 'T00:00:00')
-      matches = taskDate.getDay() === new Date(date + 'T00:00:00').getDay()
+    } else if (task.repeat === 'weekly') {
+      matches = task.repeatDays.includes(day)
+    } else {
+      matches = task.date === date
     }
 
     if (!matches) continue

@@ -20,10 +20,9 @@ const sortedTasks = computed(() => {
   const todayDay = new Date().getDay()
   return taskStore.tasks
   .filter(task => {
-    if (task.date === today) return true
     if (task.repeat === 'daily') return true
-    if (task.repeat === 'weekly' && new Date(task.date + 'T00:00:00').getDay() === todayDay) return true
-    return false
+    if (task.repeat === 'weekly') return task.repeatDays.includes(todayDay)
+    return task.date === today
   })
   .sort((a, b) => {
     if (a.completed === b.completed) {

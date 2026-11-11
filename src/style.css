@@ -26,6 +26,24 @@ html:has(.dark) {
     font-size: 16px;
   }
 }
+
+/* iOS задаёт date и time свою ширину и высоту: без этого поля не сжимаются,
+   получаются разного размера и вылезают за карточку */
+input[type="date"],
+input[type="time"] {
+  -webkit-appearance: none;
+  appearance: none;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+}
+
+/* значение внутри них iOS прижимает по центру, а остальные поля — влево */
+input[type="date"]::-webkit-date-and-time-value,
+input[type="time"]::-webkit-date-and-time-value {
+  text-align: left;
+  margin: 0;
+}
 .checkbox-wrapper-12 {
   position: relative;
   width: 24px;

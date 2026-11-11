@@ -6,15 +6,16 @@ const router = useRouter()
 const route = useRoute()
 const taskStore = useTaskStore()
 
+const DAYS=[{num:1,label:'Пн'},{num:2,label:'Вт'},{num:3,label:'Ср'},{num:4,label:'Чт'},{num:5,label:'Пт'},{num:6,label:'Сб'},{num:0,label:'Вс'}]
+
 const isEdit = computed(() => route.params.id !== undefined)
 const date=ref(new Date().toLocaleDateString('sv-SE'))
 const text = ref('')
 const start = ref('')
 const end = ref('')
 const repeat = ref('none')
+const repeatDays = ref([])
 
-// Если открыли режим правки — найти задачу по id и подставить её поля в форму.
-// Срабатывает и при переходе из «Сегодня», и когда задачи только-только подгрузились с сервера.
 watch(
   [() => route.params.id, () => taskStore.tasks],
   () => {
@@ -26,15 +27,37 @@ watch(
     end.value = task.end
     date.value = task.date
     repeat.value = task.repeat || 'none'
+    repeatDays.value = task.repeatDays || []
   },
   { immediate: true, deep: true }
 )
+
+watch(repeat, (value) => {
+    if(value==='weekly' && repeatDays.value.length===0){
+        repeatDays.value=[new Date().getDay()]
+    }
+})
+
+function toggleDay(num){
+    const index=repeatDays.value.indexOf(num)
+    if(index===-1){
+        repeatDays.value.push(num)
+    }else{
+        repeatDays.value.splice(index,1)
+    }
+}
 
 const isValid = computed(() => {
     if (start.value >= end.value) {
     return false
   }
-  return text.value.trim().length > 0 && start.value.trim().length > 0 && end.value.trim().length > 0 && date.value.trim().length > 0
+  if(repeat.value==='none' && date.value.trim().length===0){
+    return false
+  }
+  if(repeat.value==='weekly' && repeatDays.value.length===0){
+    return false
+  }
+  return text.value.trim().length > 0 && start.value.trim().length > 0 && end.value.trim().length > 0
 })
 
 
@@ -46,10 +69,11 @@ function submit() {
       start: start.value,
       end: end.value,
       date: date.value,
-      repeat: repeat.value
+      repeat: repeat.value,
+      repeatDays: repeatDays.value
     })
   } else {
-    taskStore.addTask(text.value, start.value, end.value, date.value, repeat.value)
+    taskStore.addTask(text.value, start.value, end.value, date.value, repeat.value, repeatDays.value)
   }
   router.push('/main')
 }
@@ -75,7 +99,7 @@ function submit() {
           {{ text || 'Без названия' }}
         </p>
         <p class="mt-0.5 text-xs text-slate-400 dark:text-slate-500 tabular-nums">
-          {{ date }}
+          {{ repeat === 'daily' ? 'Каждый день' : repeat === 'weekly' ? 'Каждую неделю' : date }}
         </p>
       </div>
 
@@ -101,6 +125,18 @@ function submit() {
       </label>
 
       <label class="flex flex-col gap-1">
+        <span class="text-sm text-slate-600 dark:text-slate-300">Повторять</span>
+        <select
+          v-model="repeat"
+          class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:border-indigo-400 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+        >
+          <option value="none">Не повторять</option>
+          <option value="daily">Каждый день</option>
+          <option value="weekly">Каждую неделю</option>
+        </select>
+      </label>
+
+      <label v-if="repeat === 'none'" class="flex flex-col gap-1">
         <span class="text-sm text-slate-600 dark:text-slate-300">Дата</span>
         <input
           type="date"
@@ -108,6 +144,24 @@ function submit() {
           class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm tabular-nums focus:border-indigo-400 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:[color-scheme:dark]"
         >
       </label>
+
+      <div v-if="repeat === 'weekly'" class="flex flex-col gap-1">
+        <span class="text-sm text-slate-600 dark:text-slate-300">В какие дни</span>
+        <div class="flex flex-wrap gap-2">
+          <button
+            v-for="day in DAYS"
+            :key="day.num"
+            type="button"
+            @click="toggleDay(day.num)"
+            class="h-10 w-10 rounded-xl text-sm font-medium transition"
+            :class="repeatDays.includes(day.num)
+              ? 'bg-indigo-600 text-white'
+              : 'bg-slate-100 text-slate-500 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700'"
+          >
+            {{ day.label }}
+          </button>
+        </div>
+      </div>
 
       <div class="flex gap-3">
         <label class="flex min-w-0 flex-1 flex-col gap-1">
@@ -129,23 +183,18 @@ function submit() {
         </label>
       </div>
 
-      <label class="flex flex-col gap-1">
-        <span class="text-sm text-slate-600 dark:text-slate-300">Повторять</span>
-        <select
-          v-model="repeat"
-          class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:border-indigo-400 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
-        >
-          <option value="none">Не повторять</option>
-          <option value="daily">Каждый день</option>
-          <option value="weekly">Каждую неделю</option>
-        </select>
-      </label>
-
       <p
         v-if="start && end && start >= end"
         class="text-sm text-red-600 dark:text-red-400"
       >
         Окончание должно быть позже начала
+      </p>
+
+      <p
+        v-if="repeat === 'weekly' && repeatDays.length === 0"
+        class="text-sm text-red-600 dark:text-red-400"
+      >
+        Выбери хотя бы один день
       </p>
 
       <button
