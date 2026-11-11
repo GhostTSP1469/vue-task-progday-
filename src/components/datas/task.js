@@ -13,11 +13,11 @@ export const useTaskStore = defineStore('tasks', () => {
 
   getTasks()
 
-  async function addTask(text, start, end, date) {
+  async function addTask(text, start, end, date, repeat) {
     await fetch('/api/tasks', {
       method: 'POST',
       headers: userHeaders,
-      body: JSON.stringify({ text, start, end, date })
+      body: JSON.stringify({ text, start, end, date, repeat })
     })
 
     await getTasks()
@@ -31,7 +31,8 @@ export const useTaskStore = defineStore('tasks', () => {
       text: task.text,
       start: task.start,
       end: task.end,
-      date: task.date
+      date: task.date,
+      repeat: task.repeat
     })
   })
 

@@ -49,7 +49,20 @@ export function tick(now, user) {
   let changed = user.sent.length !== before
 
   for (const task of user.tasks) {
-    if (task.date !== date || task.completed) continue
+    if (task.completed) continue
+
+    let matches = task.date === date
+
+    if (!matches && task.repeat === 'daily') {
+      matches = true
+    }
+
+    if (!matches && task.repeat === 'weekly') {
+      const taskDate = new Date(task.date + 'T00:00:00')
+      matches = taskDate.getDay() === new Date(date + 'T00:00:00').getDay()
+    }
+
+    if (!matches) continue
 
     const late = nowMin - toMinutes(task.start)
     if (late < 0 || late > LATE_MINUTES) continue

@@ -2,40 +2,40 @@
 import { useSettingsStore } from '../datas/settings.js'
 import { ref, onMounted } from 'vue'
 import { userHeaders } from '../../userId.js'
+
 const settingsStore = useSettingsStore()
-const DAYS=[{num:1,label:'Пн'},{num:2,label:'Вт'},{num:3,label:'Ср'},{num:4,label:'Чт'},{num:5,label:'Пт'},{num:6,label:'Сб'},{num:0,label:'Вс'}]
+
+const DAYS = [
+  { num: 1, label: 'Пн' },
+  { num: 2, label: 'Вт' },
+  { num: 3, label: 'Ср' },
+  { num: 4, label: 'Чт' },
+  { num: 5, label: 'Пт' },
+  { num: 6, label: 'Сб' },
+  { num: 0, label: 'Вс' }
+]
 
 const pushSupported = 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window
 const permission = ref(pushSupported ? Notification.permission : 'unsupported')
 const pushError = ref('')
 
-// Safari надёжнее принимает ключ как массив байт, а не как строку
-function urlBase64ToUint8Array(base64String) {
-  const padding = '='.repeat((4 - base64String.length % 4) % 4)
-  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
-  return Uint8Array.from(atob(base64), char => char.charCodeAt(0))
-}
-
-// если Service Worker не поднялся, ready на iPhone может висеть вечно
-function getRegistration() {
-  return Promise.race([
-    navigator.serviceWorker.ready,
-    new Promise((_, reject) => setTimeout(() => reject(new Error('Service Worker не запустился')), 8000))
-  ])
-}
-
 async function subscribeToPush() {
-  const registration = await getRegistration()
+  const registration = await navigator.serviceWorker.ready
+
   const subscription = await registration.pushManager.subscribe({
     userVisibleOnly: true,
-    applicationServerKey: urlBase64ToUint8Array(import.meta.env.VITE_VAPID_PUBLIC_KEY)
+    applicationServerKey: import.meta.env.VITE_VAPID_PUBLIC_KEY
   })
+
   const response = await fetch('/api/subscribe', {
     method: 'POST',
     body: JSON.stringify(subscription),
     headers: userHeaders
   })
-  if (!response.ok) throw new Error('Сервер не принял подписку')
+
+  if (!response.ok) {
+    throw new Error('Сервер не принял подписку')
+  }
 }
 
 async function askPermission() {
@@ -43,13 +43,14 @@ async function askPermission() {
   try {
     const result = await Notification.requestPermission()
     permission.value = result
-    if (result === 'granted') await subscribeToPush()
+    if (result === 'granted') {
+      await subscribeToPush()
+    }
   } catch (err) {
     pushError.value = err.message
   }
 }
 
-// разрешение уже есть, а подписки на сервере может не быть (сбросили базу, не дошёл запрос)
 onMounted(async () => {
   if (permission.value !== 'granted') return
   try {
@@ -59,20 +60,21 @@ onMounted(async () => {
   }
 })
 
-function toggleDay(num){
-    const index=settingsStore.settings.workDays.indexOf(num)
-    if(index===-1){
-        settingsStore.settings.workDays.push(num)
-    }else{
-        settingsStore.settings.workDays.splice(index,1)
-    }
+function toggleDay(num) {
+  const index = settingsStore.settings.workDays.indexOf(num)
+  if (index === -1) {
+    settingsStore.settings.workDays.push(num)
+  } else {
+    settingsStore.settings.workDays.splice(index, 1)
+  }
 }
 </script>
 
 <template>
   <div class="flex flex-col gap-4">
     <h1 class="text-3xl font-bold tracking-tight">Настройки</h1>
-<section class="rounded-2xl bg-white p-4 shadow-sm dark:bg-slate-900 dark:shadow-none dark:ring-1 dark:ring-slate-800">
+
+    <section class="rounded-2xl bg-white p-4 shadow-sm dark:bg-slate-900 dark:shadow-none dark:ring-1 dark:ring-slate-800">
       <h2 class="font-medium">Push-уведомления</h2>
 
       <p v-if="permission === 'granted'" class="mt-1 text-sm text-slate-500 dark:text-slate-400">Включены</p>
@@ -80,7 +82,7 @@ function toggleDay(num){
         Ты отказал в разрешении. Включи уведомления для сайта в настройках браузера (значок замка у адреса) или телефона.
       </p>
       <p v-else-if="permission === 'unsupported'" class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-        push  здесь недоступен. На iPhone добавь сайт на экран «Домой» и открой с иконки.
+        Push здесь недоступен. На iPhone добавь сайт на экран «Домой» и открой с иконки.
       </p>
       <p v-else class="mt-1 text-sm text-slate-500 dark:text-slate-400">Выключены</p>
 
@@ -174,34 +176,27 @@ function toggleDay(num){
         </label>
       </div>
     </section>
-
-    
   </div>
 </template>
 
 <style scoped>
-/* The switch - the box around the slider */
 .switch {
   display: block;
   --width-of-switch: 3.5em;
   --height-of-switch: 2em;
-  /* size of sliding icon -- sun and moon */
   --size-of-icon: 1.4em;
-  /* it is like a inline-padding of switch */
   --slider-offset: 0.3em;
   position: relative;
   width: var(--width-of-switch);
   height: var(--height-of-switch);
 }
 
-/* Hide default HTML checkbox */
 .switch input {
   opacity: 0;
   width: 0;
   height: 0;
 }
 
-/* The slider */
 .slider {
   position: absolute;
   cursor: pointer;
@@ -217,13 +212,13 @@ function toggleDay(num){
 .slider:before {
   position: absolute;
   content: "";
-  height: var(--size-of-icon,1.4em);
-  width: var(--size-of-icon,1.4em);
+  height: var(--size-of-icon, 1.4em);
+  width: var(--size-of-icon, 1.4em);
   border-radius: 20px;
-  left: var(--slider-offset,0.3em);
+  left: var(--slider-offset, 0.3em);
   top: 50%;
   transform: translateY(-50%);
-  background: linear-gradient(40deg,#ff0080,#ff8c00 70%);
+  background: linear-gradient(40deg, #ff0080, #ff8c00 70%);
   transition: .4s;
 }
 
@@ -232,9 +227,8 @@ input:checked + .slider {
 }
 
 input:checked + .slider:before {
-  left: calc(100% - (var(--size-of-icon,1.4em) + var(--slider-offset,0.3em)));
+  left: calc(100% - (var(--size-of-icon, 1.4em) + var(--slider-offset, 0.3em)));
   background: #303136;
-  /* change the value of second inset in box-shadow to change the angle and direction of the moon  */
   box-shadow: inset -3px -2px 5px -2px #8983f7, inset -10px -4px 0 0 #a3dafb;
 }
 </style>

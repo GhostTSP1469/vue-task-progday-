@@ -11,6 +11,7 @@ const date=ref(new Date().toLocaleDateString('sv-SE'))
 const text = ref('')
 const start = ref('')
 const end = ref('')
+const repeat = ref('none')
 
 // Если открыли режим правки — найти задачу по id и подставить её поля в форму.
 // Срабатывает и при переходе из «Сегодня», и когда задачи только-только подгрузились с сервера.
@@ -24,6 +25,7 @@ watch(
     start.value = task.start
     end.value = task.end
     date.value = task.date
+    repeat.value = task.repeat || 'none'
   },
   { immediate: true, deep: true }
 )
@@ -43,10 +45,11 @@ function submit() {
       text: text.value,
       start: start.value,
       end: end.value,
-      date: date.value
+      date: date.value,
+      repeat: repeat.value
     })
   } else {
-    taskStore.addTask(text.value, start.value, end.value, date.value)
+    taskStore.addTask(text.value, start.value, end.value, date.value, repeat.value)
   }
   router.push('/main')
 }
@@ -125,6 +128,18 @@ function submit() {
           >
         </label>
       </div>
+
+      <label class="flex flex-col gap-1">
+        <span class="text-sm text-slate-600 dark:text-slate-300">Повторять</span>
+        <select
+          v-model="repeat"
+          class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:border-indigo-400 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+        >
+          <option value="none">Не повторять</option>
+          <option value="daily">Каждый день</option>
+          <option value="weekly">Каждую неделю</option>
+        </select>
+      </label>
 
       <p
         v-if="start && end && start >= end"

@@ -16,8 +16,15 @@ function isCurrent(task) {
   return !task.completed && task.start <= time && time < task.end
 }
 const sortedTasks = computed(() => {
-  return taskStore.tasks                  
-  .filter(task => task.date === new Date().toLocaleDateString('sv-SE')) // типо сегодняшняя дата
+  const today = new Date().toLocaleDateString('sv-SE')
+  const todayDay = new Date().getDay()
+  return taskStore.tasks
+  .filter(task => {
+    if (task.date === today) return true
+    if (task.repeat === 'daily') return true
+    if (task.repeat === 'weekly' && new Date(task.date + 'T00:00:00').getDay() === todayDay) return true
+    return false
+  })
   .sort((a, b) => {
     if (a.completed === b.completed) {
       return a.start.localeCompare(b.start)
@@ -93,6 +100,8 @@ const sortedTasks = computed(() => {
               : 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300'"
         >
           {{ task.completed ? 'Готово' : isCurrent(task) ? 'Сейчас' : 'В плане' }}
+          <template v-if="task.repeat === 'daily'"> · ∞</template>
+          <template v-if="task.repeat === 'weekly'"> · 🔁</template>
         </span>
 
         <RouterLink
